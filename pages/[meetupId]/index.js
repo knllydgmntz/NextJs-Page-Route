@@ -1,31 +1,43 @@
-import MeetupDetail from "../../components/meetups/MeetupDetail";
+import { MongoClient, ObjectId } from "mongodb";
 
-function MeetupDetails() {
+import MeetupDetail from "../../components/meetups/MeetupDetail";
+import { Fragment } from "react";
+import Head from "next/head";
+
+function MeetupDetails(props) {
   return (
-    <MeetupDetail
-      image="https://scontent.fmnl3-4.fna.fbcdn.net/v/t39.30808-6/358061930_660398556110832_8522231917712244308_n.jpg?stp=cp6_dst-jpg&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHblt9XvrLlQjfVrFSz9QF52qiAeo6yNE_aqIB6jrI0T_7hdrbsvYY0VCmNL2mZsfs13amKiYtcmjQlBwOeO8oD&_nc_ohc=jiN7taU5UHIAX-XT6OX&_nc_ht=scontent.fmnl3-4.fna&oh=00_AfASnlM9IwBQDa_7597eLdA-MlDSCOnwqq-dM7NIVXN1fg&oe=65F9688B"
-      title="First Meet up"
-      address="The Alleyway Place"
-      description="This is a first meetup"
-    />
+    <Fragment>
+      <Head>
+        <title>{props.meetupData.title}</title>
+        <meta name="description" content={props.meetupData.description} />
+      </Head>
+      <MeetupDetail
+        image={props.meetupData.image}
+        title={props.meetupData.title}
+        address={props.meetupData.address}
+        description={props.meetupData.description}
+      />
+    </Fragment>
   );
 }
 
 export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://knllydgmntz:kyuts123@nextjs.ldnlpyk.mongodb.net/meetups?retryWrites=true&w=majority&appName=nextjs"
+  );
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+
+  client.close();
+
   return {
     fallback: false,
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
-      },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-    ],
+    paths: meetups.map((meetup) => ({
+      params: { meetupId: meetup._id.toString() },
+    })),
   };
 }
 
@@ -34,17 +46,29 @@ export async function getStaticProps(context) {
 
   const meetupId = context.params.meetupId;
 
-  console.log(meetupId);
+  const client = await MongoClient.connect(
+    "mongodb+srv://knllydgmntz:kyuts123@nextjs.ldnlpyk.mongodb.net/meetups?retryWrites=true&w=majority&appName=nextjs"
+  );
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+
+  console.log(selectedMeetup);
+
+  client.close();
 
   return {
     props: {
       meetupData: {
-        image:
-          "https://scontent.fmnl3-4.fna.fbcdn.net/v/t39.30808-6/358061930_660398556110832_8522231917712244308_n.jpg?stp=cp6_dst-jpg&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHblt9XvrLlQjfVrFSz9QF52qiAeo6yNE_aqIB6jrI0T_7hdrbsvYY0VCmNL2mZsfs13amKiYtcmjQlBwOeO8oD&_nc_ohc=jiN7taU5UHIAX-XT6OX&_nc_ht=scontent.fmnl3-4.fna&oh=00_AfASnlM9IwBQDa_7597eLdA-MlDSCOnwqq-dM7NIVXN1fg&oe=65F9688B",
-        id: meetupId,
-        title: "First Meet up",
-        address: "The Alleyway Place",
-        description: "This is a first meetup",
+        id: selectedMeetup._id.toString(),
+        title: selectedMeetup.title,
+        address: selectedMeetup.address,
+        image: selectedMeetup.image,
+        description: selectedMeetup.description,
       },
     },
   };

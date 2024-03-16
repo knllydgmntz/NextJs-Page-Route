@@ -1,49 +1,62 @@
-import MeetupList from "../components/meetups/MeetupList";
+import Head from "next/head";
+import { MongoClient } from "mongodb";
 
-const DUMMY_MEETUPS = [
-  {
-    id: "m1",
-    title: "A first meetup",
-    image:
-      "https://scontent.fmnl3-4.fna.fbcdn.net/v/t39.30808-6/358061930_660398556110832_8522231917712244308_n.jpg?stp=cp6_dst-jpg&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHblt9XvrLlQjfVrFSz9QF52qiAeo6yNE_aqIB6jrI0T_7hdrbsvYY0VCmNL2mZsfs13amKiYtcmjQlBwOeO8oD&_nc_ohc=jiN7taU5UHIAX-XT6OX&_nc_ht=scontent.fmnl3-4.fna&oh=00_AfASnlM9IwBQDa_7597eLdA-MlDSCOnwqq-dM7NIVXN1fg&oe=65F9688B",
-    address: "Alleyway Digos City",
-    description: "This is alleyway!",
-  },
-  {
-    id: "m2",
-    title: "A second meetup",
-    image:
-      "https://scontent.fmnl3-1.fna.fbcdn.net/v/t39.30808-6/252931490_125609656533638_4858984930802410221_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeGObojGhxHlDNBC_e_tSIxb5csI4pMR__blywjikxH_9gAe-w90Tng-vwyjFD6NWpwQ2htkJV6LyqakVwy_3YFv&_nc_ohc=KzKlvD3R1k0AX9qiHNe&_nc_oc=AQl6-1xO4OoSc_r81eAuyU8UeHqZZEvIdpgZnknRWbjsmPBNmL9tY73HjGLIyXzhcDg&_nc_ht=scontent.fmnl3-1.fna&oh=00_AfCgidKu9CSPdek9tTqjltHC5JQSUn_eBtsmjn9RCZkJFQ&oe=65FA5D70",
-    address: "Foodbox",
-    description: "This is a foodbox!",
-  },
-];
+import MeetupList from "../components/meetups/MeetupList";
+import { Fragment } from "react";
 
 function HomePage(props) {
-  return <MeetupList meetups={props.meetups} />;
+  return (
+    <Fragment>
+      <Head>
+        <title>React Meetups</title>
+        <meta
+          name="description"
+          content="Browse a huge list of highly active React meetups!"
+        />
+      </Head>
+      <MeetupList meetups={props.meetups} />;
+    </Fragment>
+  );
 }
 
-export async function getServerSideProps(context) {
-  const req = context.req;
-  const res = context.res;
+// export async function getServerSideProps(context) {
+//   const req = context.req;
+//   const res = context.res;
 
-  // fetch data from an API
+//   // fetch data from an API
 
-  return {
-    props: {
-      meetups: DUMMY_MEETUPS,
-    },
-  };
-}
-
-// export async function getStaticProps() {
-//   // fetch data form an API
 //   return {
 //     props: {
 //       meetups: DUMMY_MEETUPS,
 //     },
-//     revalidate: 1
 //   };
 // }
+
+export async function getStaticProps() {
+  // fetch data form an API
+
+  const client = await MongoClient.connect(
+    "mongodb+srv://knllydgmntz:kyuts123@nextjs.ldnlpyk.mongodb.net/meetups?retryWrites=true&w=majority&appName=nextjs"
+  );
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const meetups = await meetupsCollection.find().toArray();
+
+  client.close();
+
+  return {
+    props: {
+      meetups: meetups.map((meetup) => ({
+        title: meetup.title,
+        address: meetup.address,
+        image: meetup.image,
+        id: meetup._id.toString(),
+      })),
+    },
+    revalidate: 1,
+  };
+}
 
 export default HomePage;
